@@ -53,6 +53,9 @@ function buildPage() {
   lvHtml += '    <option value="femaleRep">Sort by female rep (lowest first)</option>';
   lvHtml += '    <option value="date" selected>Sort by date (earliest first)</option>';
   lvHtml += '  </select>';
+  lvHtml += '  <form action="http://127.0.0.1:5000/upcoming" method="get">';
+  lvHtml += '    <button type="submit" class="refreshDataButton" id="refreshData">Get the latest data<br>from Democracy Club</button>';
+  lvHtml += '  </form>';
   lvHtml += '</div>';
   lvHtml += '<div id="results_div">';
   lvHtml += '</div>';
@@ -61,6 +64,7 @@ function buildPage() {
 
   document.getElementById("electionFilter").addEventListener("change", electionFilterChange_listener);
   document.getElementById("sortBy").addEventListener("change", sortByChange_listener);
+  //document.getElementById("refreshData").addEventListener("click", refreshDataClick_listener);
 
   lvArgs = {
     dataset: 'upcomingLocals',
@@ -145,7 +149,8 @@ function buildResults(pvData, sortBy) {
         timeDiff = Math.abs(pollOpenDate.getTime() - today.getTime());
         diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
         lvHtml += '<div class="dateHeader">';
-        lvHtml += '<p>' + diffDays + ' days [' + org.poll_open_date + ']</p>';
+        pollOpenDate = new Date(org.poll_open_date)
+        lvHtml += '<p>In ' + diffDays + ' days (' + formatDate(pollOpenDate) + ')</p>';
         lvHtml += '</div>';
       }
 
@@ -328,6 +333,16 @@ function sortByChange_listener() {
   getData(lvArgs, buildResults);
 }
 
+function refreshDataClick_listener() {
+
+  var xhttp = new XMLHttpRequest();
+  xhttp.open("POST", "", true);
+  xhttp.setRequestHeader("Content-type", "application/json");
+  xhttp.send();
+  alert(JSON.parse(xhttp.responseText));
+
+}
+
 
 /***************
  * Other Funcs *
@@ -351,4 +366,19 @@ function sort(a, b, sortBy) {
       return 0;
     }
   }
+}
+
+function formatDate(date) {
+  var monthNames = [
+    "January", "February", "March",
+    "April", "May", "June", "July",
+    "August", "September", "October",
+    "November", "December"
+  ];
+
+  var day = date.getDate();
+  var monthIndex = date.getMonth();
+  var year = date.getFullYear();
+
+  return day + ' ' + monthNames[monthIndex] + ' ' + year;
 }

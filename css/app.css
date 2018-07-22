@@ -32,8 +32,17 @@ p.ballotGenderBD {
 table.canTable {
 }
 
-/* Lists */
+/* Other */
+
 ul.candidateList {
+}
+
+button.refreshDataButton {
+  float: right;
+  height: 50px;
+  border-radius: 4px;
+  background-color: #4CAF50;
+  margin-right: 10px;
 }
 
 /* Divs */
@@ -61,13 +70,9 @@ table.ballot {
 td.ballotText {
   width: 50%;
   vertical-align: top;
-  border-style: solid;
-  border-width: 1px;
 }
 
 td.ballotChart {
   width: 50%;
   vertical-align: bottom;
-  border-style: solid;
-  border-width: 1px;
 }

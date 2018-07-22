@@ -4,10 +4,35 @@ import csv
 import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from flask import Flask
 
 REFRESH = False
 DATA_FILENAME = 'upcoming_elections.json'
 ALL_ELECTIONS = False
+
+app = Flask(__name__)
+
+
+@app.route("/upcoming")
+def webHook_upcoming():
+    global REFRESH
+    REFRESH = True
+    execute()
+    return 'data written to file'
+
+
+@app.route("/ge2017")
+def webHook_ge2017():
+    global REFRESH
+    global ALL_ELECTIONS
+    global DATA_FILENAME
+    
+    REFRESH = True
+    ALL_ELECTIONS = False
+    DATA_FILENAME = 'ALL_ELECTIONS.json'
+
+    execute()
+    return 'data written to file'
 
 
 def processArgs(args):
@@ -34,9 +59,6 @@ def processArgs(args):
         elif arg == 'getall':
             ALL_ELECTIONS = True
             DATA_FILENAME = 'ALL_ELECTIONS.json'
-        else:
-            isUnrecognisedArg = True
-            unrecognisedArgs.append(arg)
 
     if isUnrecognisedArg:
         print(argNotRecognised.format(arg=str(unrecognisedArgs)))
@@ -495,6 +517,3 @@ def execute():
             outputData = json.load(f)
 
     writeDataToJsonConsole(outputData)
-
-
-execute()
