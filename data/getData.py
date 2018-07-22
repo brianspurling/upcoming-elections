@@ -18,7 +18,7 @@ def webHook_upcoming():
     global REFRESH
     REFRESH = True
     execute()
-    return 'data written to file'
+    return 'Data refreshed - go back and reload the page'
 
 
 @app.route("/ge2017")
@@ -26,13 +26,13 @@ def webHook_ge2017():
     global REFRESH
     global ALL_ELECTIONS
     global DATA_FILENAME
-    
+
     REFRESH = True
-    ALL_ELECTIONS = False
+    ALL_ELECTIONS = True
     DATA_FILENAME = 'ALL_ELECTIONS.json'
 
     execute()
-    return 'data written to file'
+    return 'Data refreshed - go back and reload the page'
 
 
 def processArgs(args):
@@ -153,12 +153,12 @@ def constructBallotsDataset(electionsData):
             organisationId = elec['group']
             if organisationId not in ballots[electionTypeId]:
                 ballots[electionTypeId][organisationId] = {
-                    # We need the slug to lookup to our master list of orgs
-                    'org_slug': elec['organisation']['slug'],
                     # We need the org-level poll date, so we have a date for
                     # this org's election (rather than a date for every ballot)
                     # This requires looking up the parent record in the
                     # electionsData, which is in the group attribute
+                    'org_official_name': elec['organisation']['official_name'],
+                    'org_common_name': elec['organisation']['common_name'],
                     'poll_open_date': electionsData[elec['group']]['poll_open_date'],
                     'ballots': {}
                 }
@@ -182,7 +182,6 @@ def constructBallotsDataset(electionsData):
                 'division_name': divisionName,
                 'division_id': divisionId,
                 'seats_contested': elec['seats_contested'],
-                'organisation_name': elec['organisation']['common_name'],
                 'organisation_type': elec['organisation']['organisation_type'],
                 'organisation_subtype':
                     elec['organisation']['organisation_subtype'],
@@ -255,8 +254,7 @@ def linkCandidatesToBallots(ballotsData, candidatesData):
 # ballotsAndCandidates data, and create a tidy hierachial dictionary with
 # everything we need
 def finaliseOutputData(ballotsAndCandidates,
-                       electionTypesData,
-                       orgData):
+                       electionTypesData):
     op = {}
 
     for eTypeId in ballotsAndCandidates:
@@ -274,8 +272,8 @@ def finaliseOutputData(ballotsAndCandidates,
             # election name from the organisation master data
 
             op[eTypeId]['orgs'][orgId] = {
-                'election_name': orgData[org['org_slug']]['election_name'],
-                'organisation_name': orgData[org['org_slug']]['common_name'],
+                'org_official_name': org['org_official_name'],
+                'org_common_name': org['org_common_name'],
                 'poll_open_date': org['poll_open_date'],
                 'ballots': {}}
 
@@ -437,7 +435,7 @@ def writeDataToJsonConsole(outputData):
             # we have saved in our ballot record. So use this to lookup the
             # election name from the organisation master data
             print('')
-            print(org['organisation_name'] + ' [' + org['poll_open_date'] + ']')
+            print(org['org_official_name'] + ' [' + org['poll_open_date'] + ']')
 
             for ballotId in org['ballots']:
 
@@ -458,7 +456,7 @@ def writeDataToJsonConsole(outputData):
                       ' for ' +
                       seatsCount + ' ' +
                       ballot['elected_role'] + plural + ' in ' +
-                      org['organisation_name'] + "'s " +
+                      org['org_common_name'] + "'s " +
                       str(ballot['division_name']) + ' division, on ' +
                       str(ballot['poll_open_date']) +
                       ' ~ ' + ballot['web_url'])
@@ -490,7 +488,6 @@ def execute():
     if REFRESH:
 
         electionTypesData = getElectionTypesData()
-        organisationsData = getOrganisationsData()
         futureElectionsData = getFutureElectionsData()
 
         # futureElectionsData is in DemoClub structure, so we need transform
@@ -505,8 +502,7 @@ def execute():
 
         outputData = finaliseOutputData(
             ballotsAndCandidates,
-            electionTypesData,
-            organisationsData)
+            electionTypesData)
 
         outputData = addGenderCounts(outputData)
 

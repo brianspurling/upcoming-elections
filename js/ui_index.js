@@ -44,6 +44,11 @@ function buildPage() {
 
   var lvHtml = '';
 
+  lvHtml += '<div class="attribution">';
+  lvHtml += '  <p class="attribution">Much gratitude and respect to <i><a href="https://democracyclub.org.uk" target="_blank">Democracy Club</a></i> for providing all this fabulous data!</p>';
+  lvHtml += '  <img class="logo" src="img/5050_logo.png" height="100px" width="123px" alt="50:50 Parliament Logo"/>';
+  lvHtml += '  <img class="logo" src="img/dc_logo.png" height="100px" width="316px" style="margin-left: 30px; alt="Democracy Club Logo"/>';
+  lvHtml += '</div>';
   lvHtml += '<div class="controls">';
   lvHtml += '  <select id="electionFilter">';
   lvHtml += '    <option value="general2017">2017 General Election</option>';
@@ -53,23 +58,19 @@ function buildPage() {
   lvHtml += '    <option value="femaleRep">Sort by female rep (lowest first)</option>';
   lvHtml += '    <option value="date" selected>Sort by date (earliest first)</option>';
   lvHtml += '  </select>';
-  lvHtml += '  <form action="http://127.0.0.1:5000/upcoming" method="get">';
-  lvHtml += '    <button type="submit" class="refreshDataButton" id="refreshData">Get the latest data<br>from Democracy Club</button>';
+  lvHtml += '  <form action="https://5050parliament.co.uk/data/upcoming" method="get">';
+  lvHtml += '    <button type="submit" class="refreshDataButton" id="refreshData">Refresh to get the latest<br>data from Democracy Club</button>';
   lvHtml += '  </form>';
   lvHtml += '</div>';
-  lvHtml += '<div id="results_div">';
+  lvHtml += '<div class="results" id="results_div">';
   lvHtml += '</div>';
 
   $('#container_div').html(lvHtml);
 
   document.getElementById("electionFilter").addEventListener("change", electionFilterChange_listener);
   document.getElementById("sortBy").addEventListener("change", sortByChange_listener);
-  //document.getElementById("refreshData").addEventListener("click", refreshDataClick_listener);
 
-  lvArgs = {
-    dataset: 'upcomingLocals',
-    sortBy: 'date'
-  };
+  lvArgs = {}
   getData(lvArgs, buildResults);
 
 }
@@ -80,12 +81,22 @@ function getData(pvArgs, pvCallback) {
   log(gvScriptName_main + '.' + lvFunctionName + ': Start', 'PROCS');
 
   filename = '';
-  switch (pvArgs.dataset) {
+  sortBy = '';
+
+  var electionFilter = document.getElementById("electionFilter");
+  var electionFilterValue = electionFilter.options[electionFilter.selectedIndex].value;
+
+  var sortBy = document.getElementById("sortBy");
+  var sortByValue = sortBy.options[sortBy.selectedIndex].value;
+
+  switch (electionFilterValue) {
     case 'general2017':
       filename = 'ALL_ELECTIONS';
+      sortBy = sortByValue;
       break;
     case 'upcomingLocals':
       filename = 'upcoming_elections';
+      sortBy = sortByValue;
       break;
   }
 
@@ -106,7 +117,7 @@ function getData(pvArgs, pvCallback) {
 
     console.log(newJson);
 
-    pvCallback(newJson, pvArgs.sortBy);
+    pvCallback(newJson, sortBy);
   });
 }
 
@@ -155,7 +166,7 @@ function buildResults(pvData, sortBy) {
       }
 
       lvHtml += '<div class="org">';
-      lvHtml += '  <p class="orgTitle">' + org.election_name + '</p>';
+      lvHtml += '  <p class="orgTitle">' + org.org_official_name + '</p>';
 
       if (Object.keys(org.ballots).length == 1 && org.genderBD.totalCan > 0) {
         lvHtml += '<p class="orgGenderBD">' + org.genderBD.percentFemale + '% Female | ';
@@ -233,13 +244,19 @@ function buildResults(pvData, sortBy) {
 
         lvHtml += '    </div>'; // candidate
         lvHtml += '  </td>'; // ballotText
+
+        lvHtml += '  <td>';
+        if (Object.keys(ballot.cans).length > 0 && ballot.genderBD.percentUnknown == 0) {
+          lvHtml += '<p class="ratio">' + ballot.genderBD.percentFemale + ':' + ballot.genderBD.percentMale + '</p>';
+        }
+        lvHtml += '  </td>'; // ballotRatio
         lvHtml += '  <td class="ballotChart">';
         // Need to replace fullstops in the ids, otherwise they won't work as selectors
         lvHtml += '<div class="ballotChartDiv" id="ballotChart_' + ballot.id.replace(/\./g, '') + '" data-male="' + ballot.genderBD.percentMale + '" data-female="' + ballot.genderBD.percentFemale + '" data-unknown="' + ballot.genderBD.percentUnknown + '" ></div>';
         lvHtml += '  </td>';
         lvHtml += '</tr></table>'; // ballot
 
-      }
+      } // ballotArray loop
 
       lvHtml += '</div>'; // org
 
@@ -284,7 +301,7 @@ function buildResults(pvData, sortBy) {
     // Scales
     var y_scale = d3.scaleLinear()
       .range([height, 0])
-      .domain([0, 100]);
+      .domain([0, 120]);
 
     var x_scale = d3.scaleBand()
       .range([0, width])
@@ -326,11 +343,10 @@ function buildResults(pvData, sortBy) {
         return (120 - +d[1]);  })
       .attr('width', (width - (margin.left + margin.right + 20)) / 3)
       .attr('height', function(d, i) {
-        console.log(height - (120 - +d[1]));
         return (height - (120 - +d[1]));
       })
       .attr('fill', function(d, i) {
-        return colours[i]
+        return colours[i];
       });
 
   });
@@ -341,38 +357,28 @@ function buildResults(pvData, sortBy) {
  *************/
 
 
-function electionFilterChange_listener() {
+function electionFilterChange_listener(e) {
 
   $('#results_div').html('<p>Loading</p>');
 
-  lvArgs = {
-    dataset: this.value,
-    sortBy: document.getElementById("sortBy").value
-  };
+  switch (document.getElementById("electionFilter").value) {
+    case 'general2017':
+      document.getElementById("sortBy").value = 'femaleRep';
+      break;
+    case 'upcomingLocals':
+      document.getElementById("sortBy").value = 'date';
+      break;
+  }
+  lvArgs = {};
   getData(lvArgs, buildResults);
 }
 
 function sortByChange_listener() {
 
   $('#results_div').html('<p>Loading</p>');
-
-  lvArgs = {
-    dataset: document.getElementById("electionFilter").value,
-    sortBy: this.value
-  };
+  lvArgs = {};
   getData(lvArgs, buildResults);
 }
-
-function refreshDataClick_listener() {
-
-  var xhttp = new XMLHttpRequest();
-  xhttp.open("POST", "", true);
-  xhttp.setRequestHeader("Content-type", "application/json");
-  xhttp.send();
-  alert(JSON.parse(xhttp.responseText));
-
-}
-
 
 /***************
  * Other Funcs *
