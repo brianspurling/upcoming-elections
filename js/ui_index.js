@@ -74,46 +74,46 @@ function buildPage() {
 
 }
 
-function getData(pvArgs, pvCallback){
+function getData(pvArgs, pvCallback) {
 
-    var lvFunctionName = 'getData';
-    log(gvScriptName_main + '.' + lvFunctionName + ': Start','PROCS');
+  var lvFunctionName = 'getData';
+  log(gvScriptName_main + '.' + lvFunctionName + ': Start', 'PROCS');
 
-    filename = '';
-    switch(pvArgs.dataset) {
-      case 'general2017':
-        filename = 'ALL_ELECTIONS';
-        break;
-      case 'upcomingLocals':
-        filename = 'upcoming_elections';
-        break;
+  filename = '';
+  switch (pvArgs.dataset) {
+    case 'general2017':
+      filename = 'ALL_ELECTIONS';
+      break;
+    case 'upcomingLocals':
+      filename = 'upcoming_elections';
+      break;
+  }
+
+  $.getJSON("data/" + filename + ".json", function(json) {
+
+    if (filename == 'ALL_ELECTIONS') {
+      newJson = {
+        'parl': {
+          'election_type_name': "UK Parliament elections",
+          'orgs': {
+            'parl.2017-06-08': json.parl.orgs['parl.2017-06-08']
+          }
+        }
+      };
+    } else {
+      newJson = json;
     }
 
-    $.getJSON("data/" + filename + ".json", function(json) {
+    console.log(newJson);
 
-      if (filename == 'ALL_ELECTIONS'){
-        newJson = {
-          'parl': {
-            'election_type_name': "UK Parliament elections",
-            'orgs': {
-              'parl.2017-06-08': json.parl.orgs['parl.2017-06-08']
-            }
-          }
-        };
-      } else {
-        newJson = json;
-      }
-
-      console.log(newJson);
-
-      pvCallback(newJson, pvArgs.sortBy);
-    });
+    pvCallback(newJson, pvArgs.sortBy);
+  });
 }
 
 function buildResults(pvData, sortBy) {
 
   var lvFunctionName = 'buildResults';
-  log(gvScriptName_main + '.' + lvFunctionName + ': Start','PROCS');
+  log(gvScriptName_main + '.' + lvFunctionName + ': Start', 'PROCS');
 
   var lvHtml = '';
 
@@ -132,8 +132,8 @@ function buildResults(pvData, sortBy) {
       orgArray.push(elecType.orgs[i]);
     }
 
-    orgArray.sort(function(a, b){
-      return sort(a,b,sortBy);
+    orgArray.sort(function(a, b) {
+      return sort(a, b, sortBy);
     });
 
     var lastDate = null;
@@ -169,8 +169,8 @@ function buildResults(pvData, sortBy) {
         ballotArray.push(org.ballots[i]);
       }
 
-      ballotArray.sort(function(a, b){
-        return sort(a,b,sortBy);
+      ballotArray.sort(function(a, b) {
+        return sort(a, b, sortBy);
       });
 
       for (i in ballotArray) {
@@ -235,17 +235,17 @@ function buildResults(pvData, sortBy) {
         lvHtml += '  </td>'; // ballotText
         lvHtml += '  <td class="ballotChart">';
         // Need to replace fullstops in the ids, otherwise they won't work as selectors
-        lvHtml += '<div class="ballotChartDiv" id="ballotChart_' + ballot.id.replace(/\./g,'')  + '" data-male="' + ballot.genderBD.percentMale + '" data-female="' + ballot.genderBD.percentFemale + '" data-unknown="' + ballot.genderBD.percentUnknown + '" ></div>';
+        lvHtml += '<div class="ballotChartDiv" id="ballotChart_' + ballot.id.replace(/\./g, '') + '" data-male="' + ballot.genderBD.percentMale + '" data-female="' + ballot.genderBD.percentFemale + '" data-unknown="' + ballot.genderBD.percentUnknown + '" ></div>';
         lvHtml += '  </td>';
         lvHtml += '</tr></table>'; // ballot
 
       }
 
-      lvHtml += '</div>';  // org
+      lvHtml += '</div>'; // org
 
     }
 
-    lvHtml += '</div>';  // elecType
+    lvHtml += '</div>'; // elecType
 
   }
 
@@ -254,54 +254,84 @@ function buildResults(pvData, sortBy) {
 
   $(".ballotChartDiv").each(function() {
 
-    var data = [['female', $(this).attr("data-female")],
-                ['male', $(this).attr("data-male")],
-                ['unknown', $(this).attr("data-unknown")]];
+    //  Width and height of element
+    var height = 120;
+    var width = 400;
+
+    // Margin
+    var margin = {
+      top: 20,
+      left: 20,
+      right: 20,
+      bottom: 20
+    };
+
+    // Data
+    var data = [
+      ['female', $(this).attr("data-female")],
+      ['male', $(this).attr("data-male")],
+      ['unknown', $(this).attr("data-unknown")]
+    ];
 
     var svg = d3.select('#' + $(this).attr('id'))
       .append("svg")
-      .attr('height', 100)
-      .attr('width', 100);
+      .attr('height', height + 30)
+      .attr('width', width + 50);
 
     var g = svg.append("g")
-      .attr("transform", "translate(100,100)");
+      .attr("transform", "translate(" + (margin.left) + "," + 10 + ")");
 
+    // Scales
     var y_scale = d3.scaleLinear()
-      .range([100,0])
-      .domain([0,100]);
+      .range([height, 0])
+      .domain([0, 100]);
 
     var x_scale = d3.scaleBand()
-      .range([0,100])
+      .range([0, width])
       .domain(['Female', 'Male', 'Unknown']);
 
-    var colours = d3.scaleOrdinal()
-      .range(["green", "orange", "yellow"]);
-
-    var bars = svg.selectAll(".bar")
-      .data(data);
-
-    bars.enter()
-      .append('rect')
-      .attr('class', 'bar')
-      .attr('width', '30px')
-      .attr('fill', 'red')
-      .attr('height', 100)
-      .attr('y', function(d, i){
-        return 100 - +d[1];
-      })
-      .attr('x', function(d,i){ return (i*30);});
-
+    // X axis
     var x_axis = d3.axisBottom(x_scale);
 
     g.append("g")
+      .attr("transform", "translate(10," + height + ")")
       .call(x_axis)
-      .attr("transform", "translate(500,400)")
       .selectAll("text")
-      .attr("y", 5)
-      .attr("x", 9)
+      .attr("y", 10)
+      .attr("x", 0)
       .attr("dy", ".35em")
       .style("text-anchor", "middle");
 
+    // Y axis
+    var y_axis = d3.axisLeft(y_scale).ticks(2);
+
+    g.append("g")
+      .attr('transform', 'translate(10,0)')
+      .call(y_axis);
+
+    // Fill colours
+    var green = '#22784a';
+    var purple = '#593989';
+    var offblack = '#3c3c3b';
+    var colours = [green, purple, offblack];
+
+    g.selectAll(".bar")
+      .data(data)
+      .enter()
+      .append('rect')
+      .attr('class', 'bar')
+      .attr('x', function(d, i) {
+        return (20 + (i * width) / 3);  })
+      .attr('y', function(d, i) {
+        return (120 - +d[1]);  })
+      .attr('width', (width - (margin.left + margin.right + 20)) / 3)
+      .attr('height', function(d, i) {
+        console.log(height - (120 - +d[1]));
+        return (height - (120 - +d[1]));
+      })
+      .attr('fill', function(d, i) {
+        return colours[i]
+      });
 
   });
 }
@@ -357,7 +387,7 @@ function sort(a, b, sortBy) {
     } else {
       return 0;
     }
-  } else if (sortBy == 'date'){
+  } else if (sortBy == 'date') {
     if (b.poll_open_date > a.poll_open_date) {
       return -1;
     } else if (b.poll_open_date < a.poll_open_date) {
